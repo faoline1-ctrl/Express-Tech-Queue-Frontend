@@ -1,0 +1,133 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Technician Portal</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 40px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        input, button {
+            padding: 10px;
+            font-size: 16px;
+            margin: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background-color: #0078D4;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #005a9e;
+        }
+        table {
+            margin: 20px auto;
+            border-collapse: collapse;
+            width: 80%;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+        th {
+            background-color: #0078D4;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Subaru Express Technician Queue</h1>
+    <input type="text" id="techName" placeholder="Enter your name">
+    <br>
+    <button onclick="startWorkOrder()">Start Work Order</button>
+    <button onclick="setStatus('Available')">I'm Available</button>
+    <button onclick="setStatus('Away')">I'm Away</button>
+    <button onclick="loadQueue()">Refresh Queue</button>
+
+    <div id="queueTable">Technician queue will appear here.</div>
+
+    <script>
+        const backendUrl = "https://express-tech-queue-backend-production.up.railway.app";
+
+        // Load technician name from localStorage if available
+        document.addEventListener("DOMContentLoaded", function () {
+            const storedName = localStorage.getItem("technicianName");
+            if (storedName) {
+                document.getElementById("techName").value = storedName;
+            }
+            loadQueue();
+        });
+
+        function getTechnicianName() {
+            const name = document.getElementById("techName").value.trim();
+            if (!name) {
+                alert("Please enter your name.");
+                return null;
+            }
+            localStorage.setItem("technicianName", name);
+            return name;
+        }
+
+        function startWorkOrder() {
+            const name = getTechnicianName();
+            if (!name) return;
+
+            fetch(backendUrl + "/startWorkOrder", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ technician: name })
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message);
+                loadQueue();
+            })
+            .catch(err => alert("Error: " + err));
+        }
+
+        function setStatus(status) {
+            const name = getTechnicianName();
+            if (!name) return;
+
+            fetch(backendUrl + "/setStatus", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ technician: name, status: status })
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message);
+                loadQueue();
+            })
+            .catch(err => alert("Error: " + err));
+        }
+
+        function loadQueue() {
+            fetch(backendUrl + "/getQueue")
+            .then(res => res.json())
+            .then(data => {
+                let html = "<table><tr><th>Name</th><th>Completed Work Orders</th><th>Status</th></tr>";
+                data.forEach(tech => {
+                    html += `<tr><td>${tech.name}</td><td>${tech.completed_work_orders}</td><td>${tech.status}</td></tr>`;
+                });
+                html += "</table>";
+                document.getElementById("queueTable").innerHTML = html;
+            })
+            .catch(err => {
+                document.getElementById("queueTable").innerText = "Failed to load technician queue.";
+            });
+        }
+    </script>
+</body>
+</html>
