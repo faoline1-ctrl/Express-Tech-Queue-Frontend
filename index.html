@@ -117,7 +117,7 @@
             fetch(backendUrl + "/getQueue")
             .then(res => res.json())
             .then(data => {
-                let html = "<table><tr><th>Name</th><th>Completed Work Orders</th><th>Status</th></tr>";
+                let html = "<table><tr><th>Name</th><th>Assigned Work Orders</th><th>Status</th></tr>";
                 data.forEach(tech => {
                     html += `<tr><td>${tech.name}</td><td>${tech.completed_work_orders}</td><td>${tech.status}</td></tr>`;
                 });
