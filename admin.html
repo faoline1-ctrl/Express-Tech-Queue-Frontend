@@ -1,0 +1,78 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    #queue { margin-top: 20px; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <h1>Admin Dashboard</h1>
+  <label for="tokenInput">Enter Admin Token:</label>
+  <input type="password" id="tokenInput" placeholder="asdfasdfasdfasdfasdfasdfasdf" />
+  <button onclick="fetchQueue()">View Technician Queue</button>
+  <button onclick="removeTechnician()">Remove Technician</button>
+
+  <div id="queue"></div>
+  <div id="error" class="error"></div>
+
+  <script>
+    function fetchQueue() {
+      const token = document.getElementById('tokenInput').value;
+      fetch('https://express-tech-queue-backend-production.up.railway.app/admin/viewQueue', {
+        headers: {
+          'x-admin-token': token
+        }
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Unauthorized or error fetching data');
+        }
+        return response.json();
+      })
+      .then(data => {
+        document.getElementById('error').textContent = '';
+        document.getElementById('queue').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+      })
+      .catch(error => {
+        document.getElementById('queue').innerHTML = '';
+        document.getElementById('error').textContent = error.message;
+      });
+    }
+
+    
+    async function removeTechnician() {
+      const token = document.getElementById('tokenInput').value;
+      const technician = prompt("Enter the name of the technician to remove:");
+    if (!technician) return;
+
+    try {
+      const response = await fetch('https://express-tech-queue-backend-production.up.railway.app/admin/removeTechnician', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-token': token
+        },
+        body: JSON.stringify({ technician })
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        alert(result.message);
+      } else {
+        alert(`Error: ${result.error}`);
+      }
+    } catch (err) {
+      console.error('Request failed:', err);
+      alert('Failed to remove technician. Check console for details.');
+    }
+  }
+
+
+  
+  </script>
+</body>
+</html>
