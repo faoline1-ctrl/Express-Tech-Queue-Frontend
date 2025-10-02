@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -117,17 +116,33 @@
             fetch(backendUrl + "/getQueue")
             .then(res => res.json())
             .then(data => {
-                let html = "<table><tr><th>Name</th><th>Assigned Work Orders</th><th>Status</th></tr>";
-                data.forEach(tech => {
-                    html += `<tr><td>${tech.name}</td><td>${tech.completed_work_orders}</td><td>${tech.status}</td></tr>`;
-                });
-                html += "</table>";
-                document.getElementById("queueTable").innerHTML = html;
+                renderQueue(data);
             })
             .catch(err => {
                 document.getElementById("queueTable").innerText = "Failed to load technician queue.";
             });
         }
+
+        // reusable renderer used by both polling and SSE updates
+        function renderQueue(data) {
+            let html = "<table><tr><th>Name</th><th>Assigned Work Orders</th><th>Status</th></tr>";
+            data.forEach(tech => {
+                html += `<tr><td>${tech.name}</td><td>${tech.completed_work_orders}</td><td>${tech.status}</td></tr>`;
+            });
+            html += "</table>";
+            document.getElementById("queueTable").innerHTML = html;
+        }
+
+        const evtSource = new EventSource(backendUrl + '/events');
+
+        evtSource.onmessage = (e) => {
+          const data = JSON.parse(e.data);
+          renderQueue(data); // same render function
+        };
+
+        evtSource.onerror = (err) => {
+          console.error('SSE error', err);
+        };
     </script>
 </body>
 </html>
