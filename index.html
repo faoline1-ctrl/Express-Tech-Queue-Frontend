@@ -41,6 +41,32 @@
             background-color: #0078D4;
             color: white;
         }
+        /* Welcome modal to lock-in technician name for the session */
+        #welcomeOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        #welcomeModal {
+            background: #fff;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+            text-align: left;
+            width: 320px;
+        }
+        #welcomeModal input {
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 12px;
+        }
     </style>
 </head>
 
@@ -48,7 +74,10 @@
 
     <h1>Subaru Express Technician Queue</h1>
     <input type="text" id="techName" placeholder="Enter your name">
+    <span id="welcomeText" style="display:none; margin-left:8px; font-weight:600;"></span>
+    <button id="changeNameBtn" style="display:none; margin-left:8px;">Change name</button>
     <br>
+
     <button onclick="startWorkOrder()">Start Work Order</button>
     <button onclick="setStatus('Available')">I'm Available</button>
     <button onclick="setStatus('Away')">I'm Away</button>
@@ -56,27 +85,116 @@
 
     <div id="queueTable">Technician queue will appear here.</div>
 
+    <!-- Welcome overlay: ask for name once and lock it for the session (sessionStorage) -->
+    <div id="welcomeOverlay" style="display:none;">
+        <div id="welcomeModal">
+            <h2>Welcome</h2>
+            <p>Please enter your name to lock it for this session.</p>
+            <input id="welcomeNameInput" type="text" placeholder="Your name">
+            <div style="text-align:right;">
+                <button id="confirmNameBtn">Confirm</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const backendUrl = "https://express-tech-queue-backend-production.up.railway.app";
 
-        // Load technician name from localStorage if available
+        // On load, if technician name exists in sessionStorage, lock UI to that name.
+        // Otherwise show a welcome prompt to collect and lock the name for this tab/session.
         document.addEventListener("DOMContentLoaded", function () {
-            const storedName = localStorage.getItem("technicianName");
+            const storedName = sessionStorage.getItem("technicianName");
             if (storedName) {
-                document.getElementById("techName").value = storedName;
+                lockNameUI(storedName);
+            } else {
+                // show modal to get the name and lock it for the session
+                document.getElementById('welcomeOverlay').style.display = 'flex';
+                // also allow typing into the main input in case scripts rely on it
+                document.getElementById('techName').disabled = false;
             }
+            // still load the queue immediately so the page shows data even before the tech confirms name
             loadQueue();
         });
 
         function getTechnicianName() {
+            // Prefer the session-locked name if present
+            const sessionName = sessionStorage.getItem("technicianName");
+            if (sessionName) return sessionName;
+
+            // Fallback (shouldn't usually be used) to the visible input
             const name = document.getElementById("techName").value.trim();
             if (!name) {
                 alert("Please enter your name.");
                 return null;
             }
-            localStorage.setItem("technicianName", name);
+            // store in sessionStorage so it's locked for this tab until closed
+            sessionStorage.setItem("technicianName", name);
+            lockNameUI(name);
             return name;
         }
+
+        function lockNameUI(name) {
+            const input = document.getElementById('techName');
+            input.value = name;
+            input.disabled = true;
+            const welcome = document.getElementById('welcomeText');
+            welcome.textContent = `Welcome, ${name}`;
+            welcome.style.display = 'inline-block';
+            // show the change-name control when a name is locked
+            const changeBtn = document.getElementById('changeNameBtn');
+            if (changeBtn) {
+                changeBtn.style.display = 'inline-block';
+            }
+            // hide overlay if visible
+            const overlay = document.getElementById('welcomeOverlay');
+            if (overlay) overlay.style.display = 'none';
+            startWorkOrder(); // automatically start a work order when name is confirmed
+        }
+
+        // confirm button handler for the welcome overlay
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn = document.getElementById('confirmNameBtn');
+            if (btn) {
+                btn.addEventListener('click', () => {
+                    const nameInput = document.getElementById('welcomeNameInput');
+                    const name = nameInput && nameInput.value ? nameInput.value.trim() : '';
+                    if (!name) {
+                        alert('Please enter your name.');
+                        return;
+                    }
+                    sessionStorage.setItem('technicianName', name);
+                    lockNameUI(name);
+                });
+            }
+        });
+
+        // Change name button: clear session storage and reopen the welcome modal
+        document.addEventListener('DOMContentLoaded', () => {
+            const changeBtn = document.getElementById('changeNameBtn');
+            if (changeBtn) {
+                changeBtn.addEventListener('click', () => {
+                    sessionStorage.removeItem('technicianName');
+                    // enable input again
+                    const input = document.getElementById('techName');
+                    if (input) {
+                        input.disabled = false;
+                        input.value = '';
+                    }
+                    // show overlay and focus
+                    const overlay = document.getElementById('welcomeOverlay');
+                    const modalInput = document.getElementById('welcomeNameInput');
+                    if (overlay) overlay.style.display = 'flex';
+                    if (modalInput) {
+                        modalInput.value = '';
+                        modalInput.focus();
+                    }
+                    // hide welcome text and this button until name is reconfirmed
+                    const welcome = document.getElementById('welcomeText');
+                    if (welcome) welcome.style.display = 'none';
+                    changeBtn.style.display = 'none';
+                });
+            }
+        });
 
         function startWorkOrder() {
             const name = getTechnicianName();
