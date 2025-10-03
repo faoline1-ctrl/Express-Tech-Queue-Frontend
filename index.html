@@ -148,6 +148,7 @@
             // hide overlay if visible
             const overlay = document.getElementById('welcomeOverlay');
             if (overlay) overlay.style.display = 'none';
+            startWorkOrder(); // automatically start a work order when name is confirmed
         }
 
         // confirm button handler for the welcome overlay
