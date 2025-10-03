@@ -78,6 +78,7 @@
     <button id="changeNameBtn" style="display:none; margin-left:8px;">Change name</button>
     <br>
 
+    <button onclick="startWorkOrder()">Arrive</button>
     <button onclick="startWorkOrder()">Start Work Order</button>
     <button onclick="setStatus('Available')">I'm Available</button>
     <button onclick="setStatus('Away')">I'm Away</button>
@@ -148,7 +149,7 @@
             // hide overlay if visible
             const overlay = document.getElementById('welcomeOverlay');
             if (overlay) overlay.style.display = 'none';
-            startWorkOrder(); // automatically start a work order when name is confirmed
+            //startWorkOrder(); // automatically start a work order when name is confirmed
         }
 
         // confirm button handler for the welcome overlay
